@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Conversation Exporter</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <img src="icons/icon-32.png" alt="Extension Icon" class="icon">
+            <h1 class="title">LLM Exporter</h1>
+        </header>
+        
+        <main class="main">
+            <div class="platform-info" id="platformInfo">
+                <div class="platform-indicator" id="platformIndicator">
+                    <span class="platform-name" id="platformName">Detecting platform...</span>
+                    <span class="platform-status" id="platformStatus">●</span>
+                </div>
+            </div>
+            
+            <div class="export-section" id="exportSection" style="display: none;">
+                <div class="export-options">
+                    <div class="option-group" style="display: none;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="includeMetadata" checked>
+                            <span class="checkmark"></span>
+                            Include conversation metadata
+                        </label>
+                    </div>
+                </div>
+
+                <div class="export-button-container">
+                    <button class="export-button" id="exportButton">
+                        Export Conversation
+                    </button>
+                </div>
+            </div>
+            
+            <div class="error-section" id="errorSection" style="display: none;">
+                <div class="error-message">
+                    <span class="error-icon"></span>
+                    <span class="error-text" id="errorText">Platform not supported</span>
+                </div>
+                <div class="supported-platforms">
+                    <p class="supported-title">Supported platforms:</p>
+                    <ul class="platform-list">
+                        <li>ChatGPT (chat.openai.com, chatgpt.com)</li>
+                        <li>Claude (claude.ai)</li>
+                        <li>Gemini (gemini.google.com)</li>
+                        <li>Grok (x.com/i/grok)</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="loading-section" id="loadingSection" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Exporting conversation...</p>
+            </div>
+            
+            <div class="success-section" id="successSection" style="display: none;">
+                <div class="success-message">
+                    <span class="success-icon"></span>
+                    <span class="success-text">Export completed successfully!</span>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="footer">
+            <div class="footer-links">
+                <div class="version-info">v1.0.0</div>
+                <a href="#" class="link" id="helpLink">Github</a>
+            </div>
+        </footer>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>

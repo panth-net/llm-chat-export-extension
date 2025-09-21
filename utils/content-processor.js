@@ -1,0 +1,481 @@
+// Universal LLM Conversation Exporter - Content Processing Engine
+
+class ContentProcessor {
+    constructor() {
+        this.markdownConverters = {
+            'h1': (text) => `# ${text}\n\n`,
+            'h2': (text) => `## ${text}\n\n`,
+            'h3': (text) => `### ${text}\n\n`,
+            'h4': (text) => `#### ${text}\n\n`,
+            'h5': (text) => `##### ${text}\n\n`,
+            'h6': (text) => `###### ${text}\n\n`,
+            'p': (text) => `${text}\n\n`,
+            'br': () => '\n',
+            'strong': (text) => `**${text}**`,
+            'b': (text) => `**${text}**`,
+            'em': (text) => `*${text}*`,
+            'i': (text) => `*${text}*`,
+            'code': (text) => `\`${text}\``,
+            'a': (text, element) => {
+                const href = element.getAttribute('href');
+                return href ? `[${text}](${href})` : text;
+            },
+            'img': (text, element) => {
+                const src = element.getAttribute('src');
+                const alt = element.getAttribute('alt') || text;
+                return src ? `![${alt}](${src})` : `[Image: ${alt}]`;
+            },
+            'blockquote': (text) => text.split('\n').map(line => `> ${line}`).join('\n') + '\n\n',
+            'ul': (text) => `${text}\n`,
+            'ol': (text) => `${text}\n`,
+            'li': (text, element, index) => {
+                const parent = element.parentElement;
+                const prefix = parent.tagName.toLowerCase() === 'ol' ? `${index + 1}. ` : '- ';
+                return `${prefix}${text}\n`;
+            }
+        };
+    }
+
+    /**
+     * Process conversation data into text format
+     * @param {Array} conversationData - Array of message objects
+     * @param {string} format - Output format (always 'text')
+     * @param {Object} options - Processing options
+     * @returns {string} - Formatted conversation content
+     */
+    processConversation(conversationData, format, options = {}) {
+        const {
+            includeTimestamps = false,
+            includeMetadata = true,
+            platform = 'unknown',
+            url = ''
+        } = options;
+
+        // Always return text format
+        return this.toText(conversationData, { includeTimestamps, includeMetadata, platform, url });
+    }
+
+    /**
+     * Convert conversation to plain text format
+     */
+    toText(conversationData, options) {
+        let text = '';
+
+        // Add URL at the top with validation
+        if (options.url && this.isValidUrl(options.url)) {
+            text += `chat url: ${options.url}\n\n`;
+        }
+
+        // Process each message with two newlines between articles
+        conversationData.forEach((message, index) => {
+            text += this.messageToText(message, options);
+
+            // Add two newlines between articles (except after the last one)
+            if (index < conversationData.length - 1) {
+                text += '\n\n';
+            }
+        });
+
+        return text.trim();
+    }
+
+    /**
+     * Convert a single message to plain text
+     */
+    messageToText(message, options) {
+        let text = '';
+
+        // Add role header
+        const roleDisplay = this.getRoleDisplay(message.role);
+        text += `${roleDisplay}:\n`;
+
+        // Convert content to plain text (no timestamps)
+        const content = this.htmlToText(message.content);
+        text += content;
+
+        return text;
+    }
+
+    /**
+     * Convert HTML content to Markdown
+     */
+    htmlToMarkdown(htmlContent) {
+        if (!htmlContent) return '';
+
+        // Only works in content script context where document is available
+        if (typeof document === 'undefined') {
+            console.warn('htmlToMarkdown: document not available, returning plain text');
+            return this.stripHtmlTags(htmlContent);
+        }
+
+        // Create a temporary DOM element to parse HTML safely
+        const tempDiv = document.createElement('div');
+        // SECURITY FIX: Use safe HTML parsing instead of innerHTML
+        this.safeSetHTML(tempDiv, htmlContent);
+
+        return this.processElementToMarkdown(tempDiv);
+    }
+
+    /**
+     * Convert HTML content to plain text
+     */
+    htmlToText(htmlContent) {
+        if (!htmlContent) return '';
+
+        // Only works in content script context where document is available
+        if (typeof document === 'undefined') {
+            return this.stripHtmlTags(htmlContent);
+        }
+
+        // Create a temporary DOM element to parse HTML safely
+        const tempDiv = document.createElement('div');
+        // SECURITY FIX: Use safe HTML parsing instead of innerHTML
+        this.safeSetHTML(tempDiv, htmlContent);
+
+        // Handle special elements for better formatting
+        this.processTablesForText(tempDiv);
+        this.processCodeBlocksForText(tempDiv);
+        this.processListsForText(tempDiv);
+        this.processBlockElementsForText(tempDiv);
+
+        return tempDiv.textContent || tempDiv.innerText || '';
+    }
+
+    /**
+     * Safely set HTML content without XSS vulnerabilities
+     * Uses DOMParser for safe HTML parsing
+     */
+    safeSetHTML(element, htmlContent) {
+        if (!htmlContent) return;
+
+        try {
+            // Use DOMParser for safe HTML parsing
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+
+            // Remove potentially dangerous elements
+            this.sanitizeDocument(doc);
+
+            // Clear the target element
+            element.innerHTML = '';
+
+            // Append sanitized content
+            while (doc.body.firstChild) {
+                element.appendChild(doc.body.firstChild);
+            }
+        } catch (error) {
+            console.warn('Failed to parse HTML safely, falling back to text content:', error);
+            element.textContent = this.stripHtmlTags(htmlContent);
+        }
+    }
+
+    /**
+     * Remove potentially dangerous elements and attributes from parsed document
+     */
+    sanitizeDocument(doc) {
+        // Remove script tags
+        const scripts = doc.querySelectorAll('script');
+        scripts.forEach(script => script.remove());
+
+        // Remove style tags
+        const styles = doc.querySelectorAll('style');
+        styles.forEach(style => style.remove());
+
+        // Remove on* event attributes from all elements
+        const allElements = doc.querySelectorAll('*');
+        allElements.forEach(element => {
+            // Remove all event handler attributes
+            for (let i = element.attributes.length - 1; i >= 0; i--) {
+                const attr = element.attributes[i];
+                if (attr.name.toLowerCase().startsWith('on')) {
+                    element.removeAttribute(attr.name);
+                }
+            }
+
+            // Remove dangerous attributes
+            const dangerousAttrs = ['javascript:', 'data:', 'vbscript:', 'file:'];
+            ['href', 'src', 'action', 'formaction', 'data'].forEach(attrName => {
+                const attrValue = element.getAttribute(attrName);
+                if (attrValue) {
+                    const lowerValue = attrValue.toLowerCase().trim();
+                    if (dangerousAttrs.some(dangerous => lowerValue.startsWith(dangerous))) {
+                        element.removeAttribute(attrName);
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * Process DOM element to Markdown recursively
+     */
+    processElementToMarkdown(element) {
+        let result = '';
+
+        for (const node of element.childNodes) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                result += node.textContent;
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                const tagName = node.tagName.toLowerCase();
+                const textContent = this.processElementToMarkdown(node);
+
+                if (tagName === 'table') {
+                    result += this.tableToMarkdown(node);
+                } else if (tagName === 'pre') {
+                    result += this.preToMarkdown(node);
+                } else if (this.markdownConverters[tagName]) {
+                    const converter = this.markdownConverters[tagName];
+                    const index = Array.from(node.parentElement?.children || []).indexOf(node);
+                    result += converter(textContent, node, index);
+                } else {
+                    result += textContent;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Convert HTML table to Markdown table
+     */
+    tableToMarkdown(tableElement) {
+        const rows = Array.from(tableElement.querySelectorAll('tr'));
+        if (rows.length === 0) return '';
+
+        let markdown = '\n';
+        
+        rows.forEach((row, rowIndex) => {
+            const cells = Array.from(row.querySelectorAll('td, th'));
+            const cellContents = cells.map(cell => 
+                this.htmlToText(cell.innerHTML).replace(/\|/g, '\\|').trim()
+            );
+            
+            markdown += `| ${cellContents.join(' | ')} |\n`;
+            
+            // Add header separator after first row
+            if (rowIndex === 0 && cells.length > 0) {
+                markdown += `| ${cells.map(() => '---').join(' | ')} |\n`;
+            }
+        });
+        
+        return markdown + '\n';
+    }
+
+    /**
+     * Convert pre/code blocks to Markdown
+     */
+    preToMarkdown(preElement) {
+        const codeElement = preElement.querySelector('code');
+        const content = codeElement ? codeElement.textContent : preElement.textContent;
+        const language = this.detectCodeLanguage(preElement);
+        
+        return `\n\`\`\`${language}\n${content}\n\`\`\`\n\n`;
+    }
+
+    /**
+     * Process tables for plain text output
+     */
+    processTablesForText(element) {
+        const tables = element.querySelectorAll('table');
+        tables.forEach(table => {
+            const textTable = this.tableToText(table);
+            table.replaceWith(document.createTextNode(textTable));
+        });
+    }
+
+    /**
+     * Convert table to plain text format
+     */
+    tableToText(tableElement) {
+        const rows = Array.from(tableElement.querySelectorAll('tr'));
+        let text = '\n';
+        
+        rows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td, th'));
+            const cellContents = cells.map(cell => cell.textContent.trim());
+            text += cellContents.join('\t') + '\n';
+        });
+        
+        return text + '\n';
+    }
+
+    /**
+     * Process code blocks for plain text
+     */
+    processCodeBlocksForText(element) {
+        const codeBlocks = element.querySelectorAll('pre, code');
+        codeBlocks.forEach(block => {
+            const content = block.textContent;
+            block.replaceWith(document.createTextNode(`\n${content}\n`));
+        });
+    }
+
+    /**
+     * Process lists for plain text
+     */
+    processListsForText(element) {
+        const lists = element.querySelectorAll('ul, ol');
+        lists.forEach(list => {
+            const items = Array.from(list.querySelectorAll('li'));
+            const isOrdered = list.tagName.toLowerCase() === 'ol';
+
+            let text = '\n';
+            items.forEach((item, index) => {
+                const prefix = isOrdered ? `${index + 1}. ` : '• ';
+                text += `${prefix}${item.textContent.trim()}\n`;
+            });
+            text += '\n';
+
+            list.replaceWith(document.createTextNode(text));
+        });
+    }
+
+    /**
+     * Process block elements to ensure proper line breaks
+     */
+    processBlockElementsForText(element) {
+        // Block elements that should have line breaks
+        const blockElements = element.querySelectorAll('div, p, h1, h2, h3, h4, h5, h6, blockquote, section, article');
+        blockElements.forEach(block => {
+            // Add line breaks around block elements if they don't already have them
+            const text = block.textContent;
+            if (text && text.trim()) {
+                // Only add breaks if this element has meaningful content
+                const textNode = document.createTextNode(`\n${text.trim()}\n`);
+                block.replaceWith(textNode);
+            }
+        });
+
+        // Handle line break elements
+        const lineBreaks = element.querySelectorAll('br');
+        lineBreaks.forEach(br => {
+            br.replaceWith(document.createTextNode('\n'));
+        });
+    }
+
+    /**
+     * Generate Markdown header with metadata
+     */
+    generateMarkdownHeader(conversationData, platform) {
+        const now = new Date();
+        const title = this.generateConversationTitle(conversationData);
+        
+        return `# ${title}\n\n` +
+               `**Platform:** ${platform}\n` +
+               `**Export Date:** ${now.toISOString()}\n` +
+               `**Message Count:** ${conversationData.length}\n\n` +
+               `---\n\n`;
+    }
+
+    /**
+     * Generate conversation title from first message
+     */
+    generateConversationTitle(conversationData) {
+        if (conversationData.length === 0) return 'Empty Conversation';
+        
+        const firstMessage = conversationData.find(msg => msg.role === 'user');
+        if (!firstMessage) return 'LLM Conversation';
+        
+        const content = this.htmlToText(firstMessage.content);
+        const title = content.substring(0, 50).trim();
+        return title.length < content.length ? `${title}...` : title;
+    }
+
+    /**
+     * Get display name for message role
+     */
+    getRoleDisplay(role) {
+        const roleMap = {
+            'user': 'User',
+            'assistant': 'Assistant',
+            'system': 'System',
+            'claude': 'Claude',
+            'gpt': 'ChatGPT',
+            'gemini': 'Gemini',
+            'grok': 'Grok'
+        };
+        return roleMap[role] || role.charAt(0).toUpperCase() + role.slice(1);
+    }
+
+    /**
+     * Detect programming language from code block
+     */
+    detectCodeLanguage(element) {
+        // Look for language hints in class names
+        const classNames = element.className || '';
+        const langMatch = classNames.match(/language-(\w+)|lang-(\w+)/);
+        if (langMatch) {
+            return langMatch[1] || langMatch[2];
+        }
+        
+        // Look for data attributes
+        const dataLang = element.getAttribute('data-language');
+        if (dataLang) return dataLang;
+        
+        return '';
+    }
+
+    /**
+     * Validate URL for security
+     */
+    isValidUrl(url) {
+        if (typeof url !== 'string') return false;
+
+        try {
+            const urlObj = new URL(url);
+            // Only allow https and http protocols
+            if (!['https:', 'http:'].includes(urlObj.protocol)) {
+                return false;
+            }
+
+            // Check against allowed domains
+            const allowedDomains = [
+                'chat.openai.com',
+                'chatgpt.com',
+                'claude.ai',
+                'gemini.google.com',
+                'x.com',
+                'grok.com'
+            ];
+
+            return allowedDomains.some(domain =>
+                urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
+            );
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Fallback method to strip HTML tags when DOM is not available
+     */
+    stripHtmlTags(html) {
+        if (!html) return '';
+
+        // Simple regex-based HTML tag removal (fallback for service worker context)
+        return html
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
+            .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '') // Remove style tags
+            .replace(/<[^>]*>/g, '') // Remove all other HTML tags
+            .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
+            .replace(/&amp;/g, '&') // Replace HTML entities
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/\s+/g, ' ') // Normalize whitespace
+            .trim();
+    }
+}
+
+// Export for use in other modules - Context aware
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ContentProcessor;
+} else {
+    // Detect execution context and use appropriate global scope
+    const isServiceWorker = typeof window === 'undefined' && typeof self !== 'undefined';
+    const globalScope = isServiceWorker ? self : (typeof window !== 'undefined' ? window : globalThis);
+
+    globalScope.ContentProcessor = ContentProcessor;
+}

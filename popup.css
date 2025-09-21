@@ -1,0 +1,309 @@
+/* Universal LLM Conversation Exporter - Popup Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #333;
+    background: #ffffff;
+    width: 320px;
+    min-height: 400px;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
+    padding: 16px;
+}
+
+/* Header */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.icon {
+    width: 32px;
+    height: 32px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+/* Main Content */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 60px; /* Space for fixed footer */
+}
+
+/* Platform Info */
+.platform-info {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.platform-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.platform-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.platform-status {
+    font-size: 12px;
+    color: #28a745;
+}
+
+.platform-status.error {
+    color: #dc3545;
+}
+
+.platform-status.warning {
+    color: #ffc107;
+}
+
+/* Export Section */
+.export-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Export Options */
+.export-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.option-group {
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Export Button Container */
+.export-button-container {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+}
+
+/* Export Button */
+.export-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 28px;
+    background: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);
+    min-width: 180px;
+}
+
+.export-button:hover {
+    background: #4338ca;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.export-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);
+}
+
+.export-button:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Error Section */
+.error-section {
+    text-align: left;
+    padding: 20px 0;
+}
+
+.error-message {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+    color: #dc3545;
+    font-weight: 500;
+}
+
+.error-icon {
+    font-size: 18px;
+}
+
+.supported-platforms {
+    text-align: left;
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.supported-title {
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.platform-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.platform-list li {
+    padding: 2px 0;
+    color: #666;
+    font-size: 13px;
+}
+
+.platform-list li:before {
+    content: "\2022";
+    color: #007bff;
+    margin-right: 8px;
+}
+
+/* Loading Section */
+.loading-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 0;
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    color: #666;
+    font-weight: 500;
+}
+
+/* Success Section */
+.success-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 0;
+}
+
+.success-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #28a745;
+    font-weight: 500;
+}
+
+.success-icon {
+    font-size: 18px;
+}
+
+/* Footer */
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 12px 16px;
+    border-top: 1px solid #e5e5e5;
+    z-index: 1000;
+}
+
+.footer-links {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #666;
+}
+
+.version-info {
+    font-weight: 500;
+    color: #9ca3af;
+}
+
+.link {
+    color: #6b7280;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.link:hover {
+    color: #4f46e5;
+    text-decoration: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 350px) {
+    body {
+        width: 280px;
+    }
+    
+    .container {
+        padding: 12px;
+    }
+}
