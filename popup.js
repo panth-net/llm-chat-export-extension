@@ -215,7 +215,7 @@ class PopupController {
 
     openHelpPage() {
         chrome.tabs.create({
-            url: 'https://www.pantheonnetwork.co/connect'
+            url: 'https://github.com/panth-net/llm-chat-export-extension/'
         });
     }
 }

@@ -4,7 +4,7 @@
   "description": "Export conversations from ChatGPT, Claude, Gemini, and Grok to text files. One-click export for AI chats.",
   "version": "1.0.0",
   "author": "Pantheon Network",
-  "homepage_url": "http://pantheonnetwork.co/",
+  "homepage_url": "https://github.com/panth-net/llm-chat-export-extension/",
 
   "permissions": [
     "activeTab",

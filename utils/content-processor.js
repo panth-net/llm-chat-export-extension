@@ -133,10 +133,30 @@ class ContentProcessor {
         this.safeSetHTML(tempDiv, htmlContent);
 
         // Handle special elements for better formatting
-        this.processTablesForText(tempDiv);
-        this.processCodeBlocksForText(tempDiv);
-        this.processListsForText(tempDiv);
-        this.processBlockElementsForText(tempDiv);
+        // Use try-catch for each processing step to ensure one failure doesn't stop everything
+        try {
+            this.processTablesForText(tempDiv);
+        } catch (error) {
+            console.warn('Table processing failed, continuing with text extraction:', error);
+        }
+
+        try {
+            this.processCodeBlocksForText(tempDiv);
+        } catch (error) {
+            console.warn('Code block processing failed, continuing with text extraction:', error);
+        }
+
+        try {
+            this.processListsForText(tempDiv);
+        } catch (error) {
+            console.warn('List processing failed, continuing with text extraction:', error);
+        }
+
+        try {
+            this.processBlockElementsForText(tempDiv);
+        } catch (error) {
+            console.warn('Block element processing failed, continuing with text extraction:', error);
+        }
 
         return tempDiv.textContent || tempDiv.innerText || '';
     }
@@ -279,8 +299,15 @@ class ContentProcessor {
     processTablesForText(element) {
         const tables = element.querySelectorAll('table');
         tables.forEach(table => {
-            const textTable = this.tableToText(table);
-            table.replaceWith(document.createTextNode(textTable));
+            try {
+                const textTable = this.tableToText(table);
+                table.replaceWith(document.createTextNode(textTable));
+            } catch (error) {
+                console.warn('Failed to process table, falling back to text content:', error);
+                // Fallback: just get the text content of the table
+                const fallbackText = `\n${table.textContent || ''}\n`;
+                table.replaceWith(document.createTextNode(fallbackText));
+            }
         });
     }
 
@@ -288,16 +315,27 @@ class ContentProcessor {
      * Convert table to plain text format
      */
     tableToText(tableElement) {
-        const rows = Array.from(tableElement.querySelectorAll('tr'));
-        let text = '\n';
-        
-        rows.forEach(row => {
-            const cells = Array.from(row.querySelectorAll('td, th'));
-            const cellContents = cells.map(cell => cell.textContent.trim());
-            text += cellContents.join('\t') + '\n';
-        });
-        
-        return text + '\n';
+        try {
+            const rows = Array.from(tableElement.querySelectorAll('tr'));
+            let text = '\n';
+
+            rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td, th'));
+                const cellContents = cells.map(cell => {
+                    try {
+                        return (cell.textContent || '').trim();
+                    } catch (e) {
+                        return '';
+                    }
+                });
+                text += cellContents.join('\t') + '\n';
+            });
+
+            return text + '\n';
+        } catch (error) {
+            // If table parsing completely fails, just return the text content
+            return `\n${tableElement.textContent || ''}\n`;
+        }
     }
 
     /**
@@ -306,8 +344,15 @@ class ContentProcessor {
     processCodeBlocksForText(element) {
         const codeBlocks = element.querySelectorAll('pre, code');
         codeBlocks.forEach(block => {
-            const content = block.textContent;
-            block.replaceWith(document.createTextNode(`\n${content}\n`));
+            try {
+                const content = block.textContent || '';
+                block.replaceWith(document.createTextNode(`\n${content}\n`));
+            } catch (error) {
+                console.warn('Failed to process code block, falling back to text content:', error);
+                // Fallback: just get the text content
+                const fallbackText = `\n${block.textContent || ''}\n`;
+                block.replaceWith(document.createTextNode(fallbackText));
+            }
         });
     }
 
@@ -317,17 +362,29 @@ class ContentProcessor {
     processListsForText(element) {
         const lists = element.querySelectorAll('ul, ol');
         lists.forEach(list => {
-            const items = Array.from(list.querySelectorAll('li'));
-            const isOrdered = list.tagName.toLowerCase() === 'ol';
+            try {
+                const items = Array.from(list.querySelectorAll('li'));
+                const isOrdered = list.tagName.toLowerCase() === 'ol';
 
-            let text = '\n';
-            items.forEach((item, index) => {
-                const prefix = isOrdered ? `${index + 1}. ` : '• ';
-                text += `${prefix}${item.textContent.trim()}\n`;
-            });
-            text += '\n';
+                let text = '\n';
+                items.forEach((item, index) => {
+                    try {
+                        const prefix = isOrdered ? `${index + 1}. ` : '• ';
+                        text += `${prefix}${(item.textContent || '').trim()}\n`;
+                    } catch (e) {
+                        // Skip problematic list items but continue with others
+                        console.warn('Failed to process list item, skipping:', e);
+                    }
+                });
+                text += '\n';
 
-            list.replaceWith(document.createTextNode(text));
+                list.replaceWith(document.createTextNode(text));
+            } catch (error) {
+                console.warn('Failed to process list, falling back to text content:', error);
+                // Fallback: just get the text content of the list
+                const fallbackText = `\n${list.textContent || ''}\n`;
+                list.replaceWith(document.createTextNode(fallbackText));
+            }
         });
     }
 
@@ -335,8 +392,17 @@ class ContentProcessor {
      * Process block elements to ensure proper line breaks
      */
     processBlockElementsForText(element) {
-        // Block elements that should have line breaks
-        const blockElements = element.querySelectorAll('div, p, h1, h2, h3, h4, h5, h6, blockquote, section, article');
+        // STEP 1: Add spacing between sibling elements BEFORE destroying DOM structure
+        this.addSpacingBetweenSiblings(element);
+
+        // STEP 2: Handle line break elements
+        const lineBreaks = element.querySelectorAll('br');
+        lineBreaks.forEach(br => {
+            br.replaceWith(document.createTextNode('\n'));
+        });
+
+        // STEP 3: Process block elements to ensure proper line breaks
+        const blockElements = element.querySelectorAll('div, p, h1, h2, h3, h4, h5, h6, blockquote, section, article, header, footer, nav, aside, main');
         blockElements.forEach(block => {
             // Add line breaks around block elements if they don't already have them
             const text = block.textContent;
@@ -346,12 +412,78 @@ class ContentProcessor {
                 block.replaceWith(textNode);
             }
         });
+    }
 
-        // Handle line break elements
-        const lineBreaks = element.querySelectorAll('br');
-        lineBreaks.forEach(br => {
-            br.replaceWith(document.createTextNode('\n'));
+    /**
+     * Add spacing between sibling elements that should be separated
+     * This runs BEFORE elements are replaced, preserving DOM structure for better decisions
+     */
+    addSpacingBetweenSiblings(element) {
+        // Recursively process all containers first
+        const containers = element.querySelectorAll('div, span, section, article, header, footer, nav, aside, main');
+        containers.forEach(container => {
+            this.processDirectChildren(container);
         });
+
+        // Process the root element's direct children
+        this.processDirectChildren(element);
+    }
+
+    /**
+     * Process direct children of a container to add appropriate spacing
+     */
+    processDirectChildren(container) {
+        const children = Array.from(container.children);
+
+        for (let i = 0; i < children.length - 1; i++) {
+            const current = children[i];
+            const next = children[i + 1];
+
+            // Get text content for both elements
+            const currentText = current.textContent ? current.textContent.trim() : '';
+            const nextText = next.textContent ? next.textContent.trim() : '';
+
+            // Skip if either element doesn't have meaningful content
+            if (!currentText || !nextText || currentText.length < 3 || nextText.length < 3) {
+                continue;
+            }
+
+            // Determine if these elements should be separated
+            const shouldSeparate = this.shouldSeparateElements(current, next, currentText, nextText);
+
+            if (shouldSeparate) {
+                // Insert spacing between the elements
+                const spacer = document.createTextNode('\n');
+                container.insertBefore(spacer, next);
+            }
+        }
+    }
+
+    /**
+     * Determine if two sibling elements should be separated with a newline
+     */
+    shouldSeparateElements(current, next, currentText, nextText) {
+        // Always separate if one is a block element
+        const blockTags = ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'section', 'article'];
+        if (blockTags.includes(current.tagName?.toLowerCase()) || blockTags.includes(next.tagName?.toLowerCase())) {
+            return true;
+        }
+
+        // Separate spans that contain substantial content (likely UI messages)
+        if (current.tagName?.toLowerCase() === 'span' && next.tagName?.toLowerCase() === 'span') {
+            // If both spans have substantial content, separate them
+            if (currentText.length > 10 && nextText.length > 10) {
+                return true;
+            }
+        }
+
+        // Separate buttons from other content
+        if (current.tagName?.toLowerCase() === 'button' || next.tagName?.toLowerCase() === 'button') {
+            return true;
+        }
+
+        // Don't separate short inline elements (like single words, icons, etc.)
+        return false;
     }
 
     /**

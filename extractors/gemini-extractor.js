@@ -55,10 +55,9 @@ class GeminiExtractor {
             }
 
             if (content.trim()) {
-                const prefix = type === 'user' ? 'User: ' : 'Gemini says: ';
                 messages.push({
                     role: type,
-                    content: `${prefix}${content.trim()}`
+                    content: content.trim()
                 });
             }
         });
