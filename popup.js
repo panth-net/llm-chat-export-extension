@@ -89,7 +89,7 @@ class PopupController {
             errorSection.style.display = 'block';
 
             const errorText = document.getElementById('errorText');
-            errorText.textContent = 'This extension works on ChatGPT, Claude, Gemini, and Grok conversation pages. Please navigate to one of these platforms and open a conversation to export it.';
+            errorText.textContent = 'This extension works on pages opened to LLM chats. Please navigate to a chat to export it.';
             return;
         }
 
@@ -158,24 +158,28 @@ class PopupController {
     }
 
     showLoadingState() {
-        document.getElementById('exportSection').style.display = 'none';
-        document.getElementById('errorSection').style.display = 'none';
-        document.getElementById('successSection').style.display = 'none';
-        document.getElementById('loadingSection').style.display = 'block';
+        const exportButton = document.getElementById('exportButton');
+        exportButton.textContent = 'Exporting...';
+        exportButton.disabled = true;
+        exportButton.style.background = '#9ca3af';
+        exportButton.style.cursor = 'not-allowed';
     }
 
     showSuccessState() {
-        document.getElementById('exportSection').style.display = 'none';
-        document.getElementById('errorSection').style.display = 'none';
-        document.getElementById('loadingSection').style.display = 'none';
-        document.getElementById('successSection').style.display = 'block';
+        const exportButton = document.getElementById('exportButton');
+        exportButton.textContent = 'Export Completed!';
+        exportButton.disabled = true;
+        exportButton.style.background = '#28a745';
+        exportButton.style.cursor = 'not-allowed';
     }
 
     showErrorState(errorMessage) {
-        document.getElementById('loadingSection').style.display = 'none';
-        document.getElementById('successSection').style.display = 'none';
-        document.getElementById('exportSection').style.display = 'block';
-        
+        const exportButton = document.getElementById('exportButton');
+        exportButton.textContent = 'Export Failed';
+        exportButton.disabled = true;
+        exportButton.style.background = '#dc6571';
+        exportButton.style.cursor = 'not-allowed';
+
         // Show error notification
         this.showNotification(errorMessage, 'error');
     }
@@ -197,7 +201,7 @@ class PopupController {
             fontSize: '12px',
             fontWeight: '500',
             zIndex: '1000',
-            backgroundColor: type === 'error' ? '#dc3545' : '#28a745',
+            backgroundColor: type === 'error' ? '#d86d78ff' : '#28a745',
             color: 'white'
         });
 

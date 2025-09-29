@@ -9,18 +9,13 @@
 <body>
     <div class="container">
         <header class="header">
-            <img src="icons/icon-32.png" alt="Extension Icon" class="icon">
-            <h1 class="title">LLM Exporter</h1>
+            <div class="header-links">
+                <div class="version-info">v1.0.0</div>
+                <a href="https://github.com/panth-net/llm-chat-export-extension/" class="link" id="helpLink">Github</a>
+            </div>
         </header>
         
         <main class="main">
-            <div class="platform-info" id="platformInfo">
-                <div class="platform-indicator" id="platformIndicator">
-                    <span class="platform-name" id="platformName">Detecting platform...</span>
-                    <span class="platform-status" id="platformStatus">●</span>
-                </div>
-            </div>
-            
             <div class="export-section" id="exportSection" style="display: none;">
                 <div class="export-options">
                     <div class="option-group" style="display: none;">
@@ -33,8 +28,9 @@
                 </div>
 
                 <div class="export-button-container">
+                    <img src="icons/icon-128.png" alt="Extension Icon" class="icon">
                     <button class="export-button" id="exportButton">
-                        Export Conversation
+                        Export Chat
                     </button>
                 </div>
             </div>
@@ -47,33 +43,25 @@
                 <div class="supported-platforms">
                     <p class="supported-title">Supported platforms:</p>
                     <ul class="platform-list">
-                        <li>ChatGPT (chat.openai.com, chatgpt.com)</li>
-                        <li>Claude (claude.ai)</li>
-                        <li>Gemini (gemini.google.com)</li>
-                        <li>Grok (x.com/i/grok)</li>
+                        <li>ChatGPT</li>
+                        <li>Claude</li>
+                        <li>Gemini</li>
+                        <li>Grok</li>
                     </ul>
                 </div>
             </div>
             
-            <div class="loading-section" id="loadingSection" style="display: none;">
-                <div class="loading-spinner"></div>
-                <p class="loading-text">Exporting conversation...</p>
-            </div>
-            
-            <div class="success-section" id="successSection" style="display: none;">
-                <div class="success-message">
-                    <span class="success-icon"></span>
-                    <span class="success-text">Export completed successfully!</span>
-                </div>
-            </div>
+
         </main>
-        
-        <footer class="footer">
-            <div class="footer-links">
-                <div class="version-info">v1.0.0</div>
-                <a href="https://github.com/panth-net/llm-chat-export-extension/" class="link" id="helpLink">Github</a>
+
+        <div class="platform-info" id="platformInfo">
+            <div class="platform-indicator" id="platformIndicator">
+                <span class="platform-name" id="platformName">Detecting platform...</span>
+                <span class="platform-status" id="platformStatus">●</span>
             </div>
-        </footer>
+        </div>
+
+
     </div>
     
     <script src="popup.js"></script>
